@@ -1,13 +1,12 @@
-use esp_idf_hal::peripheral::Peripheral;
+use super::{context::TaskContext, priority::TaskPriority, step::TaskStep};
+use crate::resource::{manager::ResourceManager, resource::TaskResource};
 
-use super::{context::TaskContext, priority::TaskPriority, resource::TaskResource, step::TaskStep};
-
-pub struct Task<'a> {
-    context: TaskContext<'a>,
+pub struct Task {
+    context: TaskContext,
     steps: Vec<TaskStep>,
 }
 
-impl<'a> Task<'a> {
+impl Task {
     pub fn new(name: &str, priority: TaskPriority, steps: Vec<TaskStep>) -> Self {
         Self {
             context: TaskContext::new(name.into(), priority),
@@ -15,16 +14,16 @@ impl<'a> Task<'a> {
         }
     }
 
-    pub fn run(&mut self) -> anyhow::Result<()> {
+    pub fn run(&mut self, manager: &mut ResourceManager) -> anyhow::Result<()> {
         for step in &mut self.steps[self.context.program_counter()..] {
-            step.execute(&mut self.context)?;
+            step.execute(&mut self.context, manager)?;
         }
         Ok(())
     }
 
-    pub fn acquire_resource(mut self, resource: TaskResource<'a>) -> Self {
+    pub fn acquire_resource(mut self, resource: TaskResource) -> Self {
         match resource {
-            TaskResource::Pin(pin) => (*self.context.pins()).push(pin.into_ref()),
+            TaskResource::Pin(pin) => (*self.context.pins()).push(pin),
         }
         self
     }

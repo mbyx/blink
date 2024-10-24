@@ -3,9 +3,10 @@
 use esp_idf_hal::gpio::*;
 
 mod task;
+mod resource;
 
-use esp_idf_hal::peripheral::Peripheral;
-use esp_idf_hal::prelude::Peripherals;
+use resource::manager::ResourceManager;
+use resource::resource::TaskResource;
 use task::priority::TaskPriority;
 use task::step::TaskStep;
 use task::task::Task;
@@ -18,7 +19,7 @@ fn main() -> anyhow::Result<()> {
     esp_idf_svc::sys::link_patches();
     esp_idf_svc::log::EspLogger::initialize_default();
 
-    let peripherals = Peripherals::take()?;
+    let mut manager = ResourceManager::new()?;
 
     let mut task = Task::new(
         "blink",
@@ -30,11 +31,9 @@ fn main() -> anyhow::Result<()> {
             TaskStep::Delay(1000),
         ],
     )
-    .acquire_resource(task::resource::TaskResource::Pin(
-        peripherals.pins.gpio2.downgrade().into_ref(),
-    ));
+    .acquire_resource(TaskResource::Pin(1));
 
     loop {
-        task.run()?;
+        task.run(&mut manager)?;
     }
 }
