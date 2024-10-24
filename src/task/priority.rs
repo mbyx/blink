@@ -1,3 +1,8 @@
+/// Represents the priority in scheduling a task. This can be a fine grained
+/// value or one of the default priorities (Low, Medium, High).
+///
+/// The numbers assigned to the default priorities are such that there will
+/// always be a priority between each default as well as above and below it.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Clone, Copy, Hash)]
 #[repr(u8)]
 pub enum TaskPriority {
@@ -31,11 +36,12 @@ impl From<TaskPriority> for u8 {
 
 impl Ord for TaskPriority {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        match (self, other) {
-            (&Self::Custom(p), &Self::Custom(q)) => p.cmp(&q),
-            (&any, &Self::Custom(priority)) => <Self as Into<u8>>::into(any).cmp(&priority),
-            (&Self::Custom(priority), &any) => priority.cmp(&any.into()),
-            (&any, &other) => <Self as Into<u8>>::into(any).cmp(&other.into()),
-        }
+        let (p, q) = match (*self, *other) {
+            (Self::Custom(p), Self::Custom(q)) => (p, q),
+            (any, Self::Custom(priority)) => (any.into(), priority),
+            (Self::Custom(priority), any) => (priority, any.into()),
+            (any, other) => (any.into(), other.into()),
+        };
+        p.cmp(&q)
     }
 }

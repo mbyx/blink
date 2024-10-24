@@ -2,14 +2,11 @@
 
 use esp_idf_hal::gpio::*;
 
-mod task;
 mod resource;
+mod task;
 
-use resource::manager::ResourceManager;
-use resource::resource::TaskResource;
-use task::priority::TaskPriority;
-use task::step::TaskStep;
-use task::task::Task;
+use resource::{ResourceManager, TaskResource};
+use task::{Task, TaskPriority, TaskStep};
 
 // TODO: Make it work with the way esp-hal works.
 // GPIO pins must only be referenced once or something. Probably force the scheduler to handle pin allocation,

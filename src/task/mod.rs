@@ -1,5 +1,11 @@
-pub mod context;
-pub mod priority;
-pub mod status;
-pub mod step;
-pub mod task;
+mod context;
+mod priority;
+mod status;
+mod step;
+mod task;
+
+pub use context::TaskContext;
+pub use priority::TaskPriority;
+pub use status::TaskStatus;
+pub use step::TaskStep;
+pub use task::Task;
