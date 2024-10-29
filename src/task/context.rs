@@ -19,7 +19,6 @@ pub struct TaskContext {
     /// A list of which pins as resources are assigned to this task.
     pins_used: Vec<i32>,
     // TODO: Add support for storing:
-    // TODO: - Memory Pointers (To the program code and data, probably not needed)
     // TODO: - Context Data (Data present in registers, used for saving state when restarting a process from middle)
     // TODO: - IO Status Info (List of IO requests, devices assigned to it, list of files used, etc.)
     // TODO: - Accounting Info (Processor time used so far, clock time used, time limits before its aborted, etc.)
@@ -61,13 +60,13 @@ impl TaskContext {
         self.priority
     }
 
-    /// Get the current state of the task.
-    pub fn state(&self) -> TaskStatus {
-        self.state
+    /// Get a mutable reference to the current state of the task.
+    pub fn state(&mut self) -> &mut TaskStatus {
+        &mut self.state
     }
 
-    /// Get the current step the task is on.
-    pub fn program_counter(&self) -> usize {
-        self.program_counter
+    /// Get a mutable reference to the current step the task is on.
+    pub fn program_counter(&mut self) -> &mut usize {
+        &mut self.program_counter
     }
 }

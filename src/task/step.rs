@@ -1,7 +1,6 @@
 use std::mem::ManuallyDrop;
-use std::ops::Not;
 
-use crate::resource::manager::ResourceManager;
+use crate::resource::{ResourceManager, TaskResource};
 
 use super::TaskContext;
 use anyhow::Context;
@@ -17,37 +16,29 @@ use esp_idf_hal::gpio::{Level, PinDriver};
 pub enum TaskStep {
     /// Read the output from a GPIO pin and store it in a register.
     ReadGPIO(i32),
-    // TODO: Allow the usage of analog and spi pins.
     /// Write to an input GPIO pin the given level or state.
     WriteGPIO(i32, Level),
     /// Yield execution back to the scheduler.
-    Delay(u32),
+    Yield(u32),
+    // TODO: Allow the usage of analog and spi pins.
     // TODO: Add more operations to handle files and logging.
 }
 
-impl TaskStep {
+impl<'a> TaskStep {
     /// Execute a single step of a task with the given context and acquired resources.
     pub fn execute(
         &mut self,
         context: &mut TaskContext,
-        manager: &mut ResourceManager,
+        manager: &mut ResourceManager<'a>,
     ) -> anyhow::Result<()> {
         match self {
             Self::ReadGPIO(pin_number) => {
-                // TODO: Couple this line of code and 'find_pin' so that we never forget to check
-                // TODO: if the pin was assigned.
-                context
-                    .pins()
-                    .contains(pin_number)
-                    .not()
-                    .then_some(())
-                    .context("Unable to use pins that weren't acquired.")?;
+                let pin = manager.acquire(TaskResource::Pin(*pin_number), context)?;
+                let driver = ManuallyDrop::new(
+                    PinDriver::input(pin.reborrow())
+                        .context("This error is not possible as the driver is only used once before being wiped.")?
+                );
 
-                let pin = manager.find_pin(*pin_number)?;
-
-                // TODO: Consider implications of a memory leak as well as in general creation
-                // TODO: of a new 'PinDriver' every step, which may cause lag and other problems.
-                let driver = ManuallyDrop::new(PinDriver::input(pin.reborrow())?);
                 log::info!(
                     "Reading GPIO Pin {} Resulted In The Following Output: {:?}",
                     driver.pin(),
@@ -55,21 +46,14 @@ impl TaskStep {
                 );
             }
             Self::WriteGPIO(pin_number, level) => {
-                // TODO: Couple this line of code and 'find_pin' so that we never forget to check
-                // TODO: if the pin was assigned.
-                context
-                    .pins()
-                    .contains(pin_number)
-                    .then_some(())
-                    .context("Unable to use pins that weren't acquired.")?;
-
-                let pin = manager.find_pin(*pin_number)?;
-                // TODO: Consider implications of a memory leak as well as in general creation
-                // TODO: of a new 'PinDriver' every step, which may cause lag and other problems.
-                let mut driver = ManuallyDrop::new(PinDriver::output(pin.reborrow())?);
+                let pin = manager.acquire(TaskResource::Pin(*pin_number), context)?;
+                let mut driver = ManuallyDrop::new(
+                    PinDriver::output(pin.reborrow())
+                        .context("This error is not possible as the driver is only used once before being wiped.")?
+                );
                 driver.set_level(*level)?;
             }
-            Self::Delay(ms) => {
+            Self::Yield(ms) => {
                 FreeRtos::delay_ms(*ms);
             }
         }
