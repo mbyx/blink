@@ -1,7 +1,9 @@
-use anyhow::Context;
+use std::time::{self, Instant};
 
+use anyhow::Context;
+use getset::{Getters, MutGetters, Setters};
 use super::{Shot, TaskContext, TaskPriority, TaskStatus, TaskStep};
-use crate::resource::{ResourceManager, TaskResource};
+use crate::{resource::{Request, ResourceManager, TaskResource}, util};
 
 /// Represents a task in the scheduler, which is the simplest unit of work.
 ///
@@ -14,12 +16,16 @@ use crate::resource::{ResourceManager, TaskResource};
 /// not done, access to the resource will be denied and the task will immediately
 /// enter an aborted or exited state.
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Getters, Setters, MutGetters)]
 pub struct Task {
     /// Additional accounting information required for proper task management.
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
     context: TaskContext,
     /// A list of the smallest instructions that a task can perform.
+    #[getset(get = "pub")]
     steps: Vec<TaskStep>,
     // The number of times the task can be fully run.
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
     shots: Shot,
     // TODO: Allow the use of async functions directly by abusing 'Future'.
     // TODO: Add an 'interval' to the task to determine when to run a step in the task.
@@ -38,36 +44,6 @@ impl<'a> Task {
         }
     }
 
-    /// Get a mutable reference to the pins the task has been assigned.
-    pub fn pins(&mut self) -> &mut Vec<i32> {
-        self.context.pins()
-    }
-
-    /// Get the friendly display name of the task.
-    pub fn name(&self) -> &str {
-        self.context.name()
-    }
-
-    /// Get the unique id of the task.
-    pub fn id(&self) -> uuid::Uuid {
-        self.context.id()
-    }
-
-    /// Get the execution priority of the task.
-    pub fn priority(&self) -> TaskPriority {
-        self.context.priority()
-    }
-
-    /// Get a mutable reference to the current state of the task.
-    pub fn state(&mut self) -> &mut TaskStatus {
-        self.context.state()
-    }
-
-    /// Get a mutable reference to the current step the task is on.
-    pub fn program_counter(&mut self) -> &mut usize {
-        self.context.program_counter()
-    }
-
     /// Run a task to completion without yielding for any reason.
     ///
     /// This method is not recommended to be used directly as it bypasses the task
@@ -77,14 +53,14 @@ impl<'a> Task {
     /// ran, then the task will continue from that point on instead of restarting.
     pub fn run(&mut self, manager: &mut ResourceManager<'a>) -> anyhow::Result<()> {
         if *self.context.program_counter() >= self.steps.len() {
-            *self.context.program_counter() = 0;
+            *self.context.program_counter_mut() = 0;
             self.shots -= 1;
         }
 
         let steps = &mut self.steps[*self.context.program_counter()..];
         for step in steps {
             step.execute(&mut self.context, manager)?;
-            *self.context.program_counter() += 1;
+            *self.context.program_counter_mut() += 1;
         }
 
         self.shots -= 1;
@@ -101,8 +77,10 @@ impl<'a> Task {
     pub fn step(&mut self, manager: &mut ResourceManager) -> anyhow::Result<()> {
         // TODO: Figure out the best location to put state transitions, program counter checking,
         // whether or not to run the task after reseting the pc.
+        self.context.set_last_run_timestamp(Instant::now());
+
         if *self.context.program_counter() >= self.steps.len() {
-            *self.context.program_counter() = 0;
+            *self.context.program_counter_mut() = 0;
             self.shots -= 1;
         }
 
@@ -111,13 +89,16 @@ impl<'a> Task {
             .get_mut(*self.context.program_counter())
             .context("Program counter set outside bounds.")?;
 
-        *self.context.program_counter() += 1;
+        *self.context.program_counter_mut() += 1;
 
         // TODO: Return a ShouldBlock or something that tells the scheduler that the task
         // wants to go into the block state.
         // In context look at List of IO requests maybe for this.
         let result = task_step.execute(&mut self.context, manager)?;
-        Ok(result)
+        if let Some(request) = result {
+            self.context_mut().block_requests_mut().push(request);
+        }
+        Ok(())
     }
 
     /// Assign a resource to be usable by this task.
@@ -132,7 +113,7 @@ impl<'a> Task {
     /// Returns the task itself for convenience.
     pub fn assign(mut self, resource: TaskResource) -> Self {
         match resource {
-            TaskResource::Pin(pin) => (*self.context.pins()).push(pin),
+            TaskResource::Pin(pin) => (*self.context.pins_used_mut()).push(pin),
         }
 
         self

@@ -1,23 +1,39 @@
+use getset::{Getters, MutGetters, Setters};
+use std::time;
+
 use super::{TaskPriority, TaskStatus};
+use crate::resource::Request;
 
 /// Represents the additional information or context required for scheduling.
 ///
 /// This structure has everything needed to properly schedule tasks to avoid
 /// conflicts and maximise usage of processor cores and time.
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+#[derive(Getters, Setters, MutGetters)]
 pub struct TaskContext {
     /// The friendly display name of the task.
+    #[getset(get = "pub")]
     name: String,
     /// The unique id assigned to each task.
+    #[getset(get = "pub")]
     id: uuid::Uuid,
     /// The execution priority of the task.
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
     priority: TaskPriority,
     /// The current state of the task.
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
     state: TaskStatus,
     /// The current step that the task is on.
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
     program_counter: usize,
     /// A list of which pins as resources are assigned to this task.
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
     pins_used: Vec<i32>,
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
+    block_requests: Vec<Request>,
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
+    last_run_timestamp: time::Instant,
+
     // TODO: Add support for storing:
     // TODO: - Context Data (Data present in registers, used for saving state when restarting a process from middle)
     // TODO: - IO Status Info (List of IO requests, devices assigned to it, list of files used, etc.)
@@ -37,36 +53,8 @@ impl TaskContext {
             state: TaskStatus::New,
             program_counter: 0,
             pins_used: vec![],
+            block_requests: vec![],
+            last_run_timestamp: time::Instant::now(),
         }
-    }
-
-    /// Get a mutable reference to the pins the task has been assigned.
-    pub fn pins(&mut self) -> &mut Vec<i32> {
-        &mut self.pins_used
-    }
-
-    /// Get the friendly display name of the task.
-    pub fn name(&self) -> &str {
-        self.name.as_str()
-    }
-
-    /// Get the unique id of the task.
-    pub fn id(&self) -> uuid::Uuid {
-        self.id
-    }
-
-    /// Get the execution priority of the task.
-    pub fn priority(&self) -> TaskPriority {
-        self.priority
-    }
-
-    /// Get a mutable reference to the current state of the task.
-    pub fn state(&mut self) -> &mut TaskStatus {
-        &mut self.state
-    }
-
-    /// Get a mutable reference to the current step the task is on.
-    pub fn program_counter(&mut self) -> &mut usize {
-        &mut self.program_counter
     }
 }

@@ -70,7 +70,7 @@ impl<'a> ResourceManager<'a> {
         match resource {
             TaskResource::Pin(number) => {
                 context
-                    .pins()
+                    .pins_used()
                     .contains(&number)
                     .then_some(())
                     .context("Cannot acquire pin that hasn't been declared!")?;

@@ -1,6 +1,7 @@
 use std::mem::ManuallyDrop;
 
-use crate::resource::{ResourceManager, TaskResource};
+use crate::resource::{Request, ResourceManager, TaskResource};
+use crate::util;
 
 use super::TaskContext;
 use anyhow::Context;
@@ -30,7 +31,7 @@ impl<'a> TaskStep {
         &mut self,
         context: &mut TaskContext,
         manager: &mut ResourceManager<'a>,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<Option<Request>> {
         match self {
             Self::ReadGPIO(pin_number) => {
                 let pin = manager.acquire(TaskResource::Pin(*pin_number), context)?;
@@ -54,10 +55,10 @@ impl<'a> TaskStep {
                 driver.set_level(*level)?;
             }
             Self::Yield(ms) => {
-                FreeRtos::delay_ms(*ms);
+                return Ok(Some(Request::Yield(*ms as _)));
             }
         }
 
-        Ok(())
+        Ok(None)
     }
 }

@@ -10,24 +10,6 @@ pub enum Shot {
     Custom(usize),
 }
 
-impl From<usize> for Shot {
-    fn from(value: usize) -> Self {
-        match value {
-            0 => Self::Infinity,
-            other => Self::Custom(other),
-        }
-    }
-}
-
-impl From<Shot> for usize {
-    fn from(value: Shot) -> usize {
-        match value {
-            Shot::Infinity | Shot::Custom(0) => 0,
-            Shot::Custom(other) => other,
-        }
-    }
-}
-
 impl SubAssign<usize> for Shot {
     fn sub_assign(&mut self, rhs: usize) {
         match self {
