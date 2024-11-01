@@ -15,19 +15,20 @@ pub struct ResourceManager<'a> {
     peripherals: Peripherals,
     /// A ready to access list of references to GPIO pins.
     pins: Vec<PeripheralRef<'a, AnyIOPin>>,
-
     // TODO: Add support for resources other than pins.
+    // TODO: Add support for keeping track of which task has what resource.
 }
 
 impl<'a> ResourceManager<'a> {
     /// Create a new resource manager.
-    /// 
+    ///
     /// This will setup all the references it needs to all the peripheral devices that
     /// it manages. Additional pins can also be accessed from it.
     pub fn new() -> anyhow::Result<Self> {
         let mut peripherals = Peripherals::take()
             .context("This should never occur as `take` is only called once.")?;
 
+        // TODO: Consider creating a more generic version of this.
         // Safety: This operation is safe as only this struct will ever have access
         // to these resources at all times.
         let pins = util::pref! {
@@ -62,11 +63,17 @@ impl<'a> ResourceManager<'a> {
     }
 
     // TODO: Modify this function to return a ResourceRef instead.
+    // A ResourceRef is similar to a PeripheralRef however is generic over all
+    // resources, and provides a simpler API.
 
     /// This method safely checks whether a task has declared a pin before giving
     /// access to it. This prevents two tasks from using the same pin at the same
     /// time which may lead to undefined behaviour.
-    pub fn acquire(&mut self, resource: TaskResource, context: &mut TaskContext) -> anyhow::Result<&mut PeripheralRef<'a, AnyIOPin>> {
+    pub fn acquire(
+        &mut self,
+        resource: TaskResource,
+        context: &mut TaskContext,
+    ) -> anyhow::Result<&mut PeripheralRef<'a, AnyIOPin>> {
         match resource {
             TaskResource::Pin(number) => {
                 context

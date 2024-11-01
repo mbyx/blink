@@ -1,7 +1,7 @@
 mod manager;
-mod resource;
 mod request;
+mod resource;
 
 pub use manager::ResourceManager;
-pub use resource::TaskResource;
 pub use request::Request;
+pub use resource::TaskResource;

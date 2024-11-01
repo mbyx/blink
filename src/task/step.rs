@@ -1,11 +1,9 @@
 use std::mem::ManuallyDrop;
 
 use crate::resource::{Request, ResourceManager, TaskResource};
-use crate::util;
 
 use super::TaskContext;
 use anyhow::Context;
-use esp_idf_hal::delay::FreeRtos;
 use esp_idf_hal::gpio::{Level, PinDriver};
 
 /// Represents the smallest instruction that a task can perform.
@@ -21,6 +19,7 @@ pub enum TaskStep {
     WriteGPIO(i32, Level),
     /// Yield execution back to the scheduler.
     Yield(u32),
+    // TODO: Consider using TaskResources instead of their inner values for ease.
     // TODO: Allow the usage of analog and spi pins.
     // TODO: Add more operations to handle files and logging.
 }
@@ -40,6 +39,9 @@ impl<'a> TaskStep {
                         .context("This error is not possible as the driver is only used once before being wiped.")?
                 );
 
+                // TODO: Incorporate registers to store the level.
+                // TODO: Think about the fact that despite the pin being a resource, we aren't waiting for it.
+                // If we had a WriteFile step, we couldn't do this.
                 log::info!(
                     "Reading GPIO Pin {} Resulted In The Following Output: {:?}",
                     driver.pin(),

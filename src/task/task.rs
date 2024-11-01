@@ -1,9 +1,8 @@
-use std::time::{self, Instant};
+use super::{Shot, TaskContext, TaskPriority, TaskStep};
+use crate::resource::{ResourceManager, TaskResource};
 
 use anyhow::Context;
 use getset::{Getters, MutGetters, Setters};
-use super::{Shot, TaskContext, TaskPriority, TaskStatus, TaskStep};
-use crate::{resource::{Request, ResourceManager, TaskResource}, util};
 
 /// Represents a task in the scheduler, which is the simplest unit of work.
 ///
@@ -15,8 +14,7 @@ use crate::{resource::{Request, ResourceManager, TaskResource}, util};
 /// must be manually assigned or acquired by the task on creation. If this is
 /// not done, access to the resource will be denied and the task will immediately
 /// enter an aborted or exited state.
-#[derive(Debug, PartialEq, Eq, Clone)]
-#[derive(Getters, Setters, MutGetters)]
+#[derive(Debug, PartialEq, Eq, Clone, Getters, Setters, MutGetters)]
 pub struct Task {
     /// Additional accounting information required for proper task management.
     #[getset(get = "pub", set = "pub", get_mut = "pub")]
@@ -27,6 +25,8 @@ pub struct Task {
     // The number of times the task can be fully run.
     #[getset(get = "pub", set = "pub", get_mut = "pub")]
     shots: Shot,
+    // TODO: Move shots into context, or structure tasks to be more in line with the book.
+    // i.e., the three parts of a process.
     // TODO: Allow the use of async functions directly by abusing 'Future'.
     // TODO: Add an 'interval' to the task to determine when to run a step in the task.
 }
@@ -75,10 +75,6 @@ impl<'a> Task {
     /// This method also saves the current step that it is on so that it will always
     /// start where it left off.
     pub fn step(&mut self, manager: &mut ResourceManager) -> anyhow::Result<()> {
-        // TODO: Figure out the best location to put state transitions, program counter checking,
-        // whether or not to run the task after reseting the pc.
-        self.context.set_last_run_timestamp(Instant::now());
-
         if *self.context.program_counter() >= self.steps.len() {
             *self.context.program_counter_mut() = 0;
             self.shots -= 1;
@@ -91,9 +87,6 @@ impl<'a> Task {
 
         *self.context.program_counter_mut() += 1;
 
-        // TODO: Return a ShouldBlock or something that tells the scheduler that the task
-        // wants to go into the block state.
-        // In context look at List of IO requests maybe for this.
         let result = task_step.execute(&mut self.context, manager)?;
         if let Some(request) = result {
             self.context_mut().block_requests_mut().push(request);
@@ -113,7 +106,7 @@ impl<'a> Task {
     /// Returns the task itself for convenience.
     pub fn assign(mut self, resource: TaskResource) -> Self {
         match resource {
-            TaskResource::Pin(pin) => (*self.context.pins_used_mut()).push(pin),
+            TaskResource::Pin(pin) => self.context.pins_used_mut().push(pin),
         }
 
         self
