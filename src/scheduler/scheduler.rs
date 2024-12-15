@@ -3,6 +3,7 @@ use std::{
     time::{self, Instant},
 };
 
+
 use crate::{
     resource::{Request, ResourceManager},
     task::{Shot, Task, TaskStatus},
@@ -44,12 +45,7 @@ impl TaskScheduler {
     }
 
     pub fn schedule_bulk(&mut self, tasks: Vec<Task>) {
-        tasks.into_iter().for_each(|task| {
-            self.tasks
-                .entry(*task.context().state())
-                .or_default()
-                .push(task);
-        });
+        tasks.into_iter().for_each(|task| self.schedule(task));
     }
 
     pub fn run(&mut self) -> anyhow::Result<()> {

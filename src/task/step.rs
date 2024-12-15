@@ -47,6 +47,8 @@ impl<'a> TaskStep {
                     driver.pin(),
                     driver.get_level()
                 );
+
+                context.set_last_pin_read_level_register(driver.get_level());
             }
             Self::WriteGPIO(pin_number, level) => {
                 let pin = manager.acquire(TaskResource::Pin(*pin_number), context)?;

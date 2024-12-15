@@ -1,3 +1,4 @@
+use esp_idf_hal::gpio::Level;
 use getset::{Getters, MutGetters, Setters};
 use std::time;
 
@@ -8,7 +9,7 @@ use crate::resource::Request;
 ///
 /// This structure has everything needed to properly schedule tasks to avoid
 /// conflicts and maximise usage of processor cores and time.
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Getters, Setters, MutGetters)]
+#[derive(Debug, PartialEq, Eq, Clone, Getters, Setters, MutGetters)]
 pub struct TaskContext {
     /// The friendly display name of the task.
     #[getset(get = "pub")]
@@ -41,6 +42,9 @@ pub struct TaskContext {
     /// The timestamp at which this task was last stepped.
     #[getset(get = "pub", set = "pub", get_mut = "pub")]
     last_run_timestamp: time::Instant,
+
+    #[getset(get = "pub", set = "pub", get_mut = "pub")]
+    last_pin_read_level_register: Level
     // TODO: Add support for storing:
     // - Context Data (Data present in registers, used for saving state when restarting a process from middle)
     // - IO Status Info (List of IO requests, devices assigned to it, list of files used, etc.)
@@ -58,6 +62,7 @@ impl Default for TaskContext {
             program_counter: 0,
             pins_used: vec![],
             block_requests: vec![],
+            last_pin_read_level_register: Level::Low,
             last_run_timestamp: time::Instant::now(),
         }
     }

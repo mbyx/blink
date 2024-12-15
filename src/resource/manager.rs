@@ -1,7 +1,11 @@
 use anyhow::Context;
-use esp_idf_hal::{gpio::AnyIOPin, peripheral::PeripheralRef, prelude::Peripherals};
+use esp_idf_hal::{
+    gpio::AnyIOPin,
+    peripheral::{Peripheral, PeripheralRef},
+    prelude::Peripherals,
+};
 
-use crate::{task::TaskContext, util};
+use crate::task::TaskContext;
 
 use super::TaskResource;
 
@@ -31,35 +35,9 @@ impl<'a> ResourceManager<'a> {
         // TODO: Consider creating a more generic version of this.
         // Safety: This operation is safe as only this struct will ever have access
         // to these resources at all times.
-        let pins = util::pref! {
-            peripherals.pins.gpio0,
-            peripherals.pins.gpio1,
-            peripherals.pins.gpio2,
-            peripherals.pins.gpio3,
-            peripherals.pins.gpio4,
-            peripherals.pins.gpio5,
-            peripherals.pins.gpio6,
-            peripherals.pins.gpio7,
-            peripherals.pins.gpio8,
-            peripherals.pins.gpio9,
-            peripherals.pins.gpio10,
-            peripherals.pins.gpio11,
-            peripherals.pins.gpio12,
-            peripherals.pins.gpio13,
-            peripherals.pins.gpio14,
-            peripherals.pins.gpio15,
-            peripherals.pins.gpio16,
-            peripherals.pins.gpio17,
-            peripherals.pins.gpio18,
-            peripherals.pins.gpio19,
-            peripherals.pins.gpio20,
-            peripherals.pins.gpio21
-        };
+        let pins = util::pref!(pins: 0..21);
 
-        Ok(Self {
-            peripherals,
-            pins: pins,
-        })
+        Ok(Self { peripherals, pins })
     }
 
     // TODO: Modify this function to return a ResourceRef instead.

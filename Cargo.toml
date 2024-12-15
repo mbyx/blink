@@ -1,3 +1,6 @@
+[workspace]
+members = ["util"]
+
 [package]
 name = "blink"
 version = "0.1.0"
@@ -28,6 +31,7 @@ experimental = ["esp-idf-svc/experimental"]
 embassy = ["esp-idf-svc/embassy-sync", "esp-idf-svc/critical-section", "esp-idf-svc/embassy-time-driver"]
 
 [dependencies]
+util ={ path = "util" }
 log = { version = "0.4", default-features = false }
 esp-idf-svc = { version = "0.49", default-features = false }
 esp-idf-hal = "0.44.1"
@@ -35,6 +39,7 @@ anyhow = "1.0.90"
 uuid = { version = "1.11.0", features = ["v4"] }
 getset = "0.1.3"
 typed-builder = "0.20.0"
+enumset = "1.1.5"
 
 [build-dependencies]
 embuild = "0.32.0"
