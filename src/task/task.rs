@@ -3,6 +3,7 @@ use crate::resource::{ResourceManager, TaskResource};
 
 use anyhow::Context;
 use getset::{Getters, MutGetters, Setters};
+use typed_builder::TypedBuilder;
 
 /// Represents a task in the scheduler, which is the simplest unit of work.
 ///
@@ -14,7 +15,7 @@ use getset::{Getters, MutGetters, Setters};
 /// must be manually assigned or acquired by the task on creation. If this is
 /// not done, access to the resource will be denied and the task will immediately
 /// enter an aborted or exited state.
-#[derive(Debug, PartialEq, Eq, Clone, Getters, Setters, MutGetters)]
+#[derive(Debug, PartialEq, Eq, Clone, Getters, Setters, MutGetters, TypedBuilder)]
 pub struct Task {
     /// Additional accounting information required for proper task management.
     #[getset(get = "pub", set = "pub", get_mut = "pub")]
@@ -22,7 +23,7 @@ pub struct Task {
     /// A list of the smallest instructions that a task can perform.
     #[getset(get = "pub")]
     steps: Vec<TaskStep>,
-    // The number of times the task can be fully run.
+    /// The number of times the task can be fully run.
     #[getset(get = "pub", set = "pub", get_mut = "pub")]
     shots: Shot,
     // TODO: Move shots into context, or structure tasks to be more in line with the book.

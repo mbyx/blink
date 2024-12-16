@@ -9,7 +9,7 @@ mod task;
 
 use resource::TaskResource;
 use scheduler::TaskScheduler;
-use task::{Shot, Task, TaskPriority, TaskStep};
+use task::{Shot, Task, TaskContext, TaskPriority, TaskStep};
 
 fn main() -> anyhow::Result<()> {
     esp_idf_svc::sys::link_patches();
@@ -17,35 +17,41 @@ fn main() -> anyhow::Result<()> {
 
     let mut scheduler = TaskScheduler::new().context("Could not start task scheduler!")?;
 
-    let blink_1 = Task::new(
-        "Blink Blue LED",
-        TaskPriority::Low,
-        Shot::Infinity,
-        vec![
+    let blink_always = Task::builder()
+        .shots(Shot::Infinity)
+        .context(
+            TaskContext::builder()
+                .name("Blink Blue LED")
+                .priority(TaskPriority::Low)
+                .build(),
+        )
+        .steps(vec![
             TaskStep::WriteGPIO(2, Level::High),
             TaskStep::Yield(1000),
             TaskStep::WriteGPIO(2, Level::Low),
             TaskStep::Yield(1000),
-        ],
-    )
-    .assign(TaskResource::Pin(2));
+        ])
+        .build()
+        .assign(TaskResource::Pin(2));
 
-    let blink_2 = Task::new(
-        "Blink Green LED",
-        TaskPriority::Low,
-        Shot::Custom(5),
-        vec![
+    let blink_five_times = Task::builder()
+        .shots(Shot::Custom(5))
+        .context(
+            TaskContext::builder()
+                .name("Blink Green LED")
+                .priority(TaskPriority::Low)
+                .build(),
+        )
+        .steps(vec![
             TaskStep::Yield(1000),
             TaskStep::WriteGPIO(4, Level::High),
             TaskStep::Yield(1000),
             TaskStep::WriteGPIO(4, Level::Low),
-        ],
-    )
-    .assign(TaskResource::Pin(4));
+        ])
+        .build()
+        .assign(TaskResource::Pin(4));
 
-    scheduler.schedule_bulk(vec![blink_1, blink_2]);
+    scheduler.schedule_bulk(vec![blink_always, blink_five_times]);
 
-    scheduler.run()?;
-
-    Ok(())
+    scheduler.run()
 }

@@ -3,7 +3,6 @@ use std::{
     time::{self, Instant},
 };
 
-
 use crate::{
     resource::{Request, ResourceManager},
     task::{Shot, Task, TaskStatus},

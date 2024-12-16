@@ -29,8 +29,8 @@ impl<'a> ResourceManager<'a> {
     /// This will setup all the references it needs to all the peripheral devices that
     /// it manages. Additional pins can also be accessed from it.
     pub fn new() -> anyhow::Result<Self> {
-        let mut peripherals = Peripherals::take()
-            .context("This should never occur as `take` is only called once.")?;
+        let mut peripherals =
+            Peripherals::take().context("Peripherals have already been taken.")?;
 
         // TODO: Consider creating a more generic version of this.
         // Safety: This operation is safe as only this struct will ever have access

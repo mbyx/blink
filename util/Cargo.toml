@@ -9,3 +9,5 @@ syn = { version = "2.0.87", features = ["full"] }
 
 [lib]
 proc-macro = true
+# https://github.com/rust-lang/rust/issues/125714
+harness = false # do not use the built in cargo test harness -> resolve rust-analyzer errors
